@@ -30,6 +30,7 @@ server/audit/audit_benchmark_history.jsonl
 
 # Archived inspection images (too large)
 server/archive/
+server/static/boards/custom_*.png
 
 # Roboflow dataset (download via script)
 training/datasets/

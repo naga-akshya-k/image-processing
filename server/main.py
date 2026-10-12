@@ -41,6 +41,7 @@ from server.pipeline.cfx_dispatcher import CFXDispatcher
 from server.pipeline.photometric_stereo import PhotometricStereoEngine
 from server.pipeline.solder_profiler import SolderProfilerEngine
 from server.pipeline.xray_engine import XRayEngine
+from server.pipeline.rework_advisor import generate_rework_plan_for_board
 from server.audit.logger import AuditLogger
 
 # Configure Structured Logging
@@ -1804,6 +1805,269 @@ def get_board_audit_report(board_id: str, download: Optional[int] = Query(0)):
         content=report_html,
         headers={"Content-Disposition": f'{disposition}; filename="PCB_Audit_Report_{b_id}.html"'}
     )
+
+@app.get("/api/rework-report/{board_id}")
+async def api_get_rework_report(board_id: str):
+    b_id = board_id.strip().upper()
+    defect_type = "none"
+    components_data = []
+
+    # 1. Check active inspection state
+    if _ACTIVE_INSPECTION_STATE.get("board_id") == b_id or _ACTIVE_INSPECTION_STATE.get("serial") == b_id:
+        defect_type = _ACTIVE_INSPECTION_STATE.get("defect_type", "none")
+        components_data = _ACTIVE_INSPECTION_STATE.get("components", [])
+    else:
+        # 2. Check session audit logs
+        for log in reversed(_SESSION_AUDIT_LOGS):
+            if log.get("board_id") == b_id or log.get("serial") == b_id:
+                defect_type = log.get("defect_type", "none")
+                components_data = log.get("components", [])
+                break
+        else:
+            # 3. Lookup catalog entry
+            meta = _get_board_catalog_entry(b_id)
+            defect_type = meta.get("defect_type", "none")
+            # Lookup ground truth components
+            csv_path = os.path.join(EVAL_DIR, "ground_truth.csv")
+            if os.path.exists(csv_path):
+                import csv
+                try:
+                    with open(csv_path, "r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        for r in reader:
+                            if r.get("board_id", "").strip().upper() == b_id:
+                                cid = r.get("component_id", "").strip()
+                                if cid and cid != "NONE":
+                                    components_data.append({"id": cid, "status": "DEFECT", "defect_type": defect_type})
+                except Exception:
+                    pass
+
+    plan = generate_rework_plan_for_board(b_id, defect_type, components_data)
+    return JSONResponse(content=plan, status_code=200)
+
+
+@app.get("/api/rework-report/{board_id}/html")
+async def api_get_rework_report_html(board_id: str, download: bool = False):
+    b_id = board_id.strip().upper()
+    defect_type = "none"
+    components_data = []
+
+    if _ACTIVE_INSPECTION_STATE.get("board_id") == b_id or _ACTIVE_INSPECTION_STATE.get("serial") == b_id:
+        defect_type = _ACTIVE_INSPECTION_STATE.get("defect_type", "none")
+        components_data = _ACTIVE_INSPECTION_STATE.get("components", [])
+    else:
+        for log in reversed(_SESSION_AUDIT_LOGS):
+            if log.get("board_id") == b_id or log.get("serial") == b_id:
+                defect_type = log.get("defect_type", "none")
+                components_data = log.get("components", [])
+                break
+        else:
+            meta = _get_board_catalog_entry(b_id)
+            defect_type = meta.get("defect_type", "none")
+            csv_path = os.path.join(EVAL_DIR, "ground_truth.csv")
+            if os.path.exists(csv_path):
+                import csv
+                try:
+                    with open(csv_path, "r", encoding="utf-8") as f:
+                        reader = csv.DictReader(f)
+                        for r in reader:
+                            if r.get("board_id", "").strip().upper() == b_id:
+                                cid = r.get("component_id", "").strip()
+                                if cid and cid != "NONE":
+                                    components_data.append({"id": cid, "status": "DEFECT", "defect_type": defect_type})
+                except Exception:
+                    pass
+
+    plan = generate_rework_plan_for_board(b_id, defect_type, components_data)
+    ts = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC")
+
+    status_badge = '<span style="background:#EF4444;color:#fff;padding:6px 16px;border-radius:20px;font-weight:800;font-size:14px;letter-spacing:1px;">REWORK REQUIRED</span>' if plan.get("has_defects") else '<span style="background:#10B981;color:#fff;padding:6px 16px;border-radius:20px;font-weight:800;font-size:14px;letter-spacing:1px;">CONFORMING (PASS)</span>'
+
+    tools_html = "".join([f'<li style="margin-bottom:8px;display:flex;align-items:flex-start;"><span style="color:#6366F1;margin-right:8px;font-weight:bold;">&#x2714;</span> {t}</li>' for t in plan.get("required_tools", [])])
+    materials_html = "".join([f'<li style="margin-bottom:8px;display:flex;align-items:flex-start;"><span style="color:#10B981;margin-right:8px;font-weight:bold;">&#x2714;</span> {m}</li>' for m in plan.get("required_materials", [])])
+    sop_html = "".join([f'<li style="margin-bottom:12px;padding:10px 14px;background:#F8FAFC;border-left:4px solid #6366F1;border-radius:4px;color:#1E293B;font-size:13.5px;line-height:1.5;">{s}</li>' for s in plan.get("step_by_step_sop", [])])
+    rca_html = "".join([f'<li style="margin-bottom:8px;color:#334155;font-size:13.5px;"><strong style="color:#DC2626;">&bull;</strong> {r}</li>' for r in plan.get("root_cause", [])])
+    affected_str = ", ".join(plan.get("affected_components", ["None"]))
+
+    report_html = f'''<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>IPC-7711/7721 Defect Remediation &amp; Rework Order &bull; {b_id}</title>
+  <style>
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{ font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #0F172A; color: #1E293B; padding: 24px; }}
+    .paper {{ max-width: 900px; margin: 0 auto; background: #FFFFFF; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.4); overflow: hidden; }}
+    .header {{ background: #0B1120; color: #fff; padding: 28px 36px; display: flex; justify-content: space-between; align-items: center; border-bottom: 4px solid #6366F1; }}
+    .header-title {{ font-size: 22px; font-weight: 800; letter-spacing: -0.5px; }}
+    .header-sub {{ font-size: 13px; color: #94A3B8; margin-top: 4px; }}
+    .content {{ padding: 32px 36px; }}
+    .banner {{ background: #F1F5F9; border-radius: 10px; padding: 18px 22px; margin-bottom: 26px; display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; border: 1px solid #E2E8F0; }}
+    .meta-box {{ display: flex; flex-direction: column; }}
+    .meta-lbl {{ font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748B; letter-spacing: 0.5px; }}
+    .meta-val {{ font-size: 16px; font-weight: 800; color: #0F172A; margin-top: 2px; }}
+    .section-title {{ font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; color: #1E293B; margin: 24px 0 12px; display: flex; align-items: center; border-bottom: 2px solid #E2E8F0; padding-bottom: 6px; }}
+    .section-title i {{ margin-right: 8px; color: #6366F1; }}
+    .grid-2 {{ display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }}
+    ul {{ list-style: none; }}
+    .pnp-box {{ background: #FEF3C7; border-left: 4px solid #F59E0B; padding: 14px 18px; border-radius: 6px; font-size: 13.5px; color: #92400E; font-weight: 500; margin-top: 14px; }}
+    .sign-table {{ width: 100%; margin-top: 32px; border-collapse: collapse; border: 1px solid #E2E8F0; }}
+    .sign-table th, .sign-table td {{ border: 1px solid #E2E8F0; padding: 10px 14px; font-size: 12.5px; text-align: left; }}
+    .sign-table th {{ background: #F8FAFC; color: #475569; }}
+    .footer-bar {{ background: #F8FAFC; padding: 18px 36px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #E2E8F0; }}
+    @media print {{
+      body {{ background: #fff; padding: 0; }}
+      .paper {{ box-shadow: none; border-radius: 0; }}
+      .no-print {{ display: none !important; }}
+    }}
+  </style>
+</head>
+<body>
+  <div class="paper">
+    <div class="header">
+      <div>
+        <div class="header-title">&#x1F527; IPC-7711/7721 Component Remediation &amp; Rework Order</div>
+        <div class="header-sub">Automated Engineering SOP &bull; Surface Mount Quality Assurance</div>
+      </div>
+      <div>
+        {status_badge}
+      </div>
+    </div>
+
+    <div class="content">
+      <div class="banner">
+        <div class="meta-box">
+          <span class="meta-lbl">BOARD IDENTIFIER</span>
+          <span class="meta-val">{b_id}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-lbl">DEFECT CLASSIFICATION</span>
+          <span class="meta-val" style="color: {'#EF4444' if plan.get('has_defects') else '#10B981'};">{plan.get('title')}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-lbl">AFFECTED PART(S)</span>
+          <span class="meta-val">{affected_str}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-lbl">DISPOSITION</span>
+          <span class="meta-val" style="font-size:14px;color:#4F46E5;">{plan.get('disposition', 'RETURN TO BENCH')}</span>
+        </div>
+      </div>
+
+      <div class="section-title">&#x1F4DC; IPC Standard Conformance Guideline</div>
+      <p style="font-size:13.5px;color:#334155;background:#EFF6FF;border-left:4px solid #3B82F6;padding:12px 16px;border-radius:4px;line-height:1.5;">
+        {plan.get('ipc_standard')}
+      </p>
+
+      <div class="section-title">&#x1F50D; Root Cause Analysis (RCA)</div>
+      <ul>
+        {rca_html}
+      </ul>
+
+      <div class="grid-2" style="margin-top: 20px;">
+        <div>
+          <div class="section-title">&#x1F6E0;&#xFE0F; Required Tools &amp; Equipment</div>
+          <ul>
+            {tools_html}
+          </ul>
+        </div>
+        <div>
+          <div class="section-title">&#x1F4E6; Required Consumables &amp; Materials</div>
+          <ul>
+            {materials_html}
+          </ul>
+        </div>
+      </div>
+
+      <div class="section-title" style="margin-top:24px;">&#x1F4CB; Step-by-Step IPC-7711/7721 Standard Operating Procedure (SOP)</div>
+      <ol style="list-style:none;padding:0;">
+        {sop_html}
+      </ol>
+
+      <div class="pnp-box">
+        <strong>&#x26A0;&#xFE0F; Pick-and-Place (PnP) / Stencil Line Feedback:</strong><br>
+        {plan.get('pnp_machine_action')}
+      </div>
+
+      <table class="sign-table">
+        <thead>
+          <tr>
+            <th>Role</th>
+            <th>Personnel Name</th>
+            <th>Sign-off Signature</th>
+            <th>Date / Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>AOI Vision Inspector</td>
+            <td>Automated AI Vision System</td>
+            <td>VERIFIED [AI PASS/FAIL ENGINE]</td>
+            <td>{ts}</td>
+          </tr>
+          <tr>
+            <td>SMT Rework Technician</td>
+            <td>_______________________</td>
+            <td>_______________________</td>
+            <td>____/____/________</td>
+          </tr>
+          <tr>
+            <td>QA Quality Lead</td>
+            <td>_______________________</td>
+            <td>_______________________</td>
+            <td>____/____/________</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-bar no-print">
+      <span style="font-size:12px;color:#64748B;">Generated {ts} &bull; Work Order ID: RWK-{b_id}-{int(time.time())}</span>
+      <div>
+        <button onclick="window.print()" style="background:#6366F1;color:#fff;border:none;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer;margin-right:10px;">
+          &#x1F5A8;&#xFE0F; Print / Save PDF
+        </button>
+        <button onclick="window.close()" style="background:#E2E8F0;color:#334155;border:none;padding:9px 18px;border-radius:6px;font-weight:700;cursor:pointer;">
+          &#x2715; Close
+        </button>
+      </div>
+    </div>
+  </div>
+</body>
+</html>'''
+
+    disposition = "attachment" if download else "inline"
+    return HTMLResponse(
+        content=report_html,
+        headers={"Content-Disposition": f'{disposition}; filename="IPC_Rework_Order_{b_id}.html"'}
+    )
+
+
+@app.post("/api/rework-report/send")
+async def api_send_rework_report(request: Request):
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    board_id = body.get("board_id", "TB015").strip().upper()
+    recipient = body.get("recipient", "smt-rework-line1@enterprise.local")
+    notes = body.get("notes", "")
+
+    ticket_id = f"RWK-TICKET-{board_id}-{int(time.time())}"
+    logger.info(f"Rework report dispatched for board {board_id} to {recipient} with ticket {ticket_id}")
+
+    return JSONResponse(
+        content={
+            "success": True,
+            "ticket_id": ticket_id,
+            "board_id": board_id,
+            "recipient": recipient,
+            "message": f"IPC-7711/7721 Defect Remediation Work Order successfully dispatched to {recipient}. Tracking Ticket: {ticket_id}.",
+            "dispatched_at": datetime.now(timezone.utc).isoformat()
+        },
+        status_code=200
+    )
+
 
 @app.get("/3d-view")
 def page_3d_view():

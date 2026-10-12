@@ -16,75 +16,199 @@
 </head>
 <body>
 
-  <!-- Top Enterprise Industrial Header Bar -->
-  <header class="ind-header">
-    <div class="header-left">
-      <div class="company-brand">
-        <div class="brand-logo">
-          <i class="fa-solid fa-microchip"></i>
-        </div>
-        <div class="brand-meta">
-          <div class="brand-name">PCB AI Metrology & AOI Station</div>
-          <div class="brand-sub">Enterprise IPC-A-610H Class 2/3 & Industry 4.0 Platform</div>
-        </div>
+  <!-- Top Enterprise Industrial Header Bar (Reference UI Style) -->
+  <header class="ind-header" style="justify-content: space-between; padding: 12px 24px; background: #060A14; border-bottom: 1px solid rgba(255,255,255,0.08);">
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #4F46E5, #3B82F6); display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; box-shadow: 0 0 12px rgba(79, 70, 229, 0.5);">
+        <i class="fa-solid fa-microchip"></i>
       </div>
-
-      <div class="standards-pills">
-        <span class="pill pill-standard"><i class="fa-solid fa-certificate"></i> IPC-A-610H</span>
-        <span class="pill pill-standard"><i class="fa-solid fa-satellite-dish"></i> IPC-CFX-2591</span>
-        <span class="pill pill-standard"><i class="fa-solid fa-shield-check"></i> ISO 9001:2015</span>
-        <span class="pill pill-version"><i class="fa-solid fa-cube"></i> 3D Leveled Depth</span>
+      <div>
+        <h1 style="font-family: var(--font-heading); font-size: 17px; font-weight: 800; color: #FFFFFF; letter-spacing: -0.2px; margin: 0; line-height: 1.2;">
+          AI-Powered PCB Defect Detection in Real-Time
+        </h1>
+        <div style="font-size: 11px; color: #64748B; font-weight: 500;">
+          Enterprise Conveyor AOI &bull; IPC-A-610H Class 2/3 &bull; Metrology Suite
+        </div>
       </div>
     </div>
 
-    <!-- Server Connection Status Panel -->
-    <div class="telemetry-panel">
-      <div class="telem-item">
-        <div class="telem-dot active"></div>
-        <div class="telem-info">
-          <span class="telem-label">LINE STATUS</span>
-          <span class="telem-val text-pass" id="telemServer">SMT LINE 01 ONLINE</span>
+    <!-- Right Controls: Dev Toggle, Profile & Quick Studios Menu -->
+    <div style="display: flex; align-items: center; gap: 14px;">
+      <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; font-weight: 600; color: #94A3B8;">
+        <span>Dev</span>
+        <div id="devToggleSwitch" style="width: 38px; height: 20px; background: #4F46E5; border-radius: 10px; position: relative; cursor: pointer; transition: background 0.2s;">
+          <div style="width: 16px; height: 16px; background: #FFFFFF; border-radius: 50%; position: absolute; right: 2px; top: 2px; box-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
         </div>
+      </div>
+
+      <div style="display: flex; align-items: center; gap: 8px; background: #0F172A; padding: 5px 12px; border-radius: 20px; border: 1px solid #1E293B; font-size: 12.5px; font-weight: 600; color: #E2E8F0; cursor: pointer;">
+        <div style="width: 22px; height: 22px; border-radius: 50%; background: #3B82F6; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #fff;">
+          <i class="fa-solid fa-user"></i>
+        </div>
+        <span>Development</span>
+        <i class="fa-solid fa-chevron-down" style="font-size: 10px; color: #64748B;"></i>
+      </div>
+
+      <div class="standards-pills" style="margin-left: 6px;">
+        <a href="/3d-view" class="pill pill-version" style="text-decoration: none;" title="360° Interactive 3D Digital Twin"><i class="fa-solid fa-cube"></i> 3D Digital Twin</a>
+        <a href="/xray-studio" class="pill pill-version" style="text-decoration: none;" title="Internal Copper Traces & BGA Inspection"><i class="fa-solid fa-radiation"></i> 3D X-Ray Studio</a>
+        <a href="/photometric-studio" class="pill pill-version" style="text-decoration: none;" title="Multi-Directional Lighting Studio"><i class="fa-solid fa-wand-magic-sparkles"></i> Photometric Studio</a>
+        <a href="/metrology" class="pill pill-standard" style="text-decoration: none;" title="Sub-pixel Metrology"><i class="fa-solid fa-ruler-combined"></i> Metrology</a>
+        <a href="/audit-history" class="pill pill-standard" style="text-decoration: none;" title="Inspection Audit History"><i class="fa-solid fa-clock-rotate-left"></i> Audit</a>
       </div>
     </div>
   </header>
 
-  <!-- Multi-Page Industrial Navigation Menu -->
-      <nav class="ind-nav-menu">
-    <a href="/" class="nav-tab-btn active"><i class="fa-solid fa-camera-retro"></i> Live Inspection</a>
-    <a href="/3d-view" class="nav-tab-btn"><i class="fa-solid fa-cube"></i> 360° 3D Digital Twin</a>
-    <a href="/photometric-studio" class="nav-tab-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> 3D Photometric Studio</a>
-    <a href="/xray-studio" class="nav-tab-btn"><i class="fa-solid fa-radiation"></i> 3D X-Ray Studio</a>
-    <a href="/photometric" class="nav-tab-btn"><i class="fa-solid fa-layer-group"></i> Photometric Stereo</a>
-    <a href="/metrology" class="nav-tab-btn"><i class="fa-solid fa-ruler-combined"></i> IPC-A-610 Metrology</a>
-    <a href="/analytics" class="nav-tab-btn"><i class="fa-solid fa-chart-pie"></i> Statistical Analytics</a>
-    <a href="/spc" class="nav-tab-btn"><i class="fa-solid fa-chart-line"></i> SPC Control Charts</a>
-    <a href="/msa" class="nav-tab-btn"><i class="fa-solid fa-flask"></i> Gage R&R (MSA)</a>
-    <a href="/cfx" class="nav-tab-btn"><i class="fa-solid fa-satellite-dish"></i> Industry 4.0 CFX</a>
-    <a href="/audit" class="nav-tab-btn"><i class="fa-solid fa-file-shield"></i> ISO 9001 Audit</a>
-    <a href="/audit-history" class="nav-tab-btn"><i class="fa-solid fa-clock-rotate-left"></i> Inspection Audit</a>
-    <a href="/download-zip" class="nav-tab-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff !important; font-weight: bold; border-color: #34d399; margin-left: auto;" download><i class="fa-solid fa-file-zipper"></i> Download Suite (.ZIP)</a>
-  </nav>
-
   <!-- Main Industrial Dashboard Layout -->
-  <main class="ind-dashboard">
+  <main class="ind-dashboard" style="padding: 12px 20px;">
 
-    <!-- Executive Educational Explainer Banner -->
-    <div class="page-explainer-banner">
-      <div class="page-explainer-content">
-        <div class="page-explainer-title">
-          <i class="fa-solid fa-camera-retro text-primary"></i> Live Optical Inspection & Defect Workbench
+    <!-- =====================================================================
+         REAL-TIME CONVEYOR AOI DASHBOARD (REFERENCE SCREENSHOT LAYOUT)
+         ===================================================================== -->
+    <section class="conveyor-dashboard-container" id="conveyorDashboardSection">
+      <!-- Left Sidebar: Try Card & General Nav -->
+      <aside class="conveyor-sidebar-left">
+        <!-- Try Card -->
+        <div class="try-card">
+          <div class="try-header">
+            <span>Try</span>
+            <button class="try-menu-btn" title="Conveyor Options"><i class="fa-solid fa-ellipsis"></i></button>
+          </div>
+          <div class="try-preview-box">
+            <img id="tryPreviewImg" class="try-preview-img" src="/evaluation/test_boards/TB005.png" alt="Conveyor Preview">
+          </div>
+          <div class="try-footer">
+            <i class="fa-regular fa-clock"></i>
+            <span id="tryCreatedTime">Created on April 07</span>
+          </div>
         </div>
-        <p class="page-explainer-desc">
-          Automated vision inspection console that compares incoming production PCB captures against the golden master board. Uses sub-pixel homography alignment, monocular 3D depth estimation, and tri-metric ensemble matching to verify component presence, solder fillet integrity, and IPC-A-610 quality standards.
-        </p>
-      </div>
-      <div class="page-explainer-chips">
-        <span class="explainer-chip"><i class="fa-solid fa-certificate"></i> IPC-A-610 Class 2/3</span>
-        <span class="explainer-chip"><i class="fa-solid fa-cube"></i> 3D Leveled Depth</span>
-        <span class="explainer-chip"><i class="fa-solid fa-shield-halved"></i> Tri-Metric 2D Ensemble</span>
-      </div>
-    </div>
+
+        <!-- General Navigation List -->
+        <div class="general-nav-card">
+          <div class="general-nav-title">General</div>
+          <ul class="general-nav-list">
+            <li><button class="general-nav-btn" id="btnNavOverview"><i class="fa-solid fa-gauge"></i> Overview</button></li>
+            <li><button class="general-nav-btn" id="btnNavCapture"><i class="fa-solid fa-camera"></i> Capture</button></li>
+            <li><button class="general-nav-btn" id="btnNavTest"><i class="fa-solid fa-vial"></i> Test</button></li>
+            <li><button class="general-nav-btn active" id="btnNavRun"><i class="fa-solid fa-play"></i> Run</button></li>
+            <li><button class="general-nav-btn" id="btnNavRework"><i class="fa-solid fa-screwdriver-wrench"></i> Fix &amp; Rework</button></li>
+            <li><button class="general-nav-btn" id="btnNavConvert"><i class="fa-solid fa-arrow-right-arrow-left"></i> Convert</button></li>
+          </ul>
+        </div>
+
+        <!-- Quick Scenario Target Selector -->
+        <div style="background: #090E1A; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 12px;">
+          <label style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: #64748B; display: block; margin-bottom: 6px;">
+            <i class="fa-solid fa-microchip"></i> Select Board Target
+          </label>
+          <select id="conveyorScenarioSelect" class="ind-select" style="font-size: 12px; padding: 7px 10px; width: 100%; border-radius: 6px;">
+            <optgroup label="✅ Golden Standard (PASS - 100% Target)">
+              <option value="TB005" selected>TB005 - 100% Perfect Golden Master (OK)</option>
+              <option value="TB006">TB006 - Golden Production Board 2 (OK)</option>
+              <option value="TB007">TB007 - Golden Production Board 3 (OK)</option>
+              <option value="TB008">TB008 - Golden Production Board 4 (OK)</option>
+              <option value="TB009">TB009 - Golden Production Board 5 (OK)</option>
+            </optgroup>
+            <optgroup label="⚠️ Missing Components (NOK / FAIL)">
+              <option value="TB015">TB015 - Missing Top SMT Header J_TOP (NOK)</option>
+              <option value="TB016">TB016 - Missing Bottom SMT Header J_BOT (NOK)</option>
+              <option value="TB011">TB011 - Missing Center Processor U5 (NOK)</option>
+              <option value="TB013">TB013 - Missing Controller U2 (NOK)</option>
+              <option value="TB010">TB010 - Missing Top-Right MCU U1 (NOK)</option>
+              <option value="TB017">TB017 - Missing Left Passives Matrix (NOK)</option>
+              <option value="TB018">TB018 - Missing Bottom-Right MCU U4 (NOK)</option>
+            </optgroup>
+            <optgroup label="⚠️ Metrology, Tilt & Stress (NOK / REWORK)">
+              <option value="TB003">TB003 - Controller U2 Angular Tilt 18° (NOK)</option>
+              <option value="TB002">TB002 - Passive Tombstone Lift (NOK)</option>
+              <option value="TB004">TB004 - Component Placement Shift (NOK)</option>
+              <option value="TB032">TB032 - Severe Substrate Thermal Burn Hole (NOK)</option>
+            </optgroup>
+          </select>
+        </div>
+      </aside>
+
+      <!-- Center Stage: Conveyor Belt Bay -->
+      <main class="conveyor-stage-center">
+        <div class="conveyor-guide-rail-top"></div>
+        <div class="conveyor-guide-rail-bot"></div>
+
+        <div class="conveyor-lens-crosshair">
+          <div class="live-indicator"></div>
+          <span id="conveyorCameraTag">OPTICAL CAM 01 &bull; 60 FPS</span>
+        </div>
+
+        <!-- Conveyor Viewport with Animated Slats -->
+        <div class="conveyor-viewport animating" id="conveyorViewport">
+          <div class="conveyor-board-anchor" id="conveyorBoardAnchor">
+            <img id="conveyorBoardImg" class="conveyor-board-img" src="/evaluation/test_boards/TB005.png" alt="Board on Conveyor">
+            <!-- Dynamic Overlay Bounding Boxes (Green OK or Red NOK) -->
+            <div class="conveyor-bbox-overlay" id="conveyorBBoxOverlay">
+              <div class="board-bbox-ok">
+                <span class="bbox-badge">OK</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Conveyor Controls Deck -->
+        <div class="conveyor-controls-deck">
+          <div class="conveyor-btn-group">
+            <button class="conveyor-deck-btn primary" id="btnConveyorPlayPause" title="Start or Stop Conveyor Belt">
+              <i class="fa-solid fa-pause"></i> <span id="conveyorPlayPauseText">Pause Belt</span>
+            </button>
+            <button class="conveyor-deck-btn" id="btnConveyorNext" title="Advance to Next Board">
+              <i class="fa-solid fa-forward-step"></i> Next Board
+            </button>
+            <button class="conveyor-deck-btn" id="btnConveyorWebcam" title="Inspect Using Live Camera Stream">
+              <i class="fa-solid fa-camera"></i> Live Camera
+            </button>
+            <button class="conveyor-deck-btn" id="btnConveyorSpeed" title="Toggle Conveyor Speed">
+              <i class="fa-solid fa-gauge-high"></i> Speed: <span id="conveyorSpeedText">1.0x</span>
+            </button>
+          </div>
+
+          <div class="conveyor-btn-group">
+            <button class="conveyor-deck-btn danger" id="btnOpenReworkReport" title="View Defect Remediation & Fix Requirements Report">
+              <i class="fa-solid fa-screwdriver-wrench"></i> Fix Requirements &amp; SOP
+            </button>
+            <button class="conveyor-deck-btn success" id="btnSendReworkOrder" title="Dispatch Rework Order to Technician">
+              <i class="fa-solid fa-paper-plane"></i> Send Report
+            </button>
+          </div>
+
+          <div class="conveyor-telemetry-status">
+            <span class="telemetry-pill">BOARD: <strong id="tickerBoardId" style="color: #60A5FA;">TB005</strong></span>
+            <span class="telemetry-pill">VERDICT: <strong id="tickerVerdict" style="color: #00E676;">OK (PASS)</strong></span>
+            <span class="telemetry-pill">HEALTH: <strong id="tickerHealth" style="color: #10B981;">1.000</strong></span>
+          </div>
+        </div>
+      </main>
+
+      <!-- Right Sidebar: Results Gallery Stream -->
+      <aside class="conveyor-sidebar-right">
+        <div class="results-panel-card">
+          <div class="results-header-box">
+            <span class="results-header-title">Results</span>
+            <span class="results-count-badge" id="resultsCountBadge">6 Scanned</span>
+          </div>
+
+          <div class="results-grid-container" id="resultsGridContainer">
+            <!-- Results cards injected dynamically via JS -->
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <!-- Diagnostics Collapse Toggle Button -->
+    <button class="diagnostics-collapse-btn" id="btnToggleDiagnostics" type="button">
+      <span><i class="fa-solid fa-chart-column"></i> Detailed Engineering Diagnostics, Golden Comparison &amp; Metrology Table</span>
+      <i class="fa-solid fa-chevron-down" id="diagnosticsChevron"></i>
+    </button>
+
+    <!-- Collapsible Diagnostics Section Wrapper -->
+    <div id="diagnosticsSectionWrapper" style="display: none;">
+
     
     <!-- Dominant Inspection Verdict & Radial Quality Score -->
     <section class="summary-hero-card" id="heroSummaryCard">
@@ -342,7 +466,40 @@
       </div>
     </section>
 
+    </div> <!-- End diagnosticsSectionWrapper -->
+
   </main>
+
+  <!-- IPC-7711/7721 Component Remediation & Rework Order Modal -->
+  <div id="reworkAdvisorModal" class="rework-modal-backdrop" style="display: none;">
+    <div class="rework-modal-container">
+      <div class="rework-modal-header">
+        <div class="rework-modal-title">
+          <i class="fa-solid fa-screwdriver-wrench text-primary"></i>
+          <span>IPC-7711/7721 Component Remediation &amp; Rework Order</span>
+        </div>
+        <button id="btnCloseReworkModal" class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="rework-modal-body" id="reworkModalBody">
+        <!-- Injected dynamically via JS from /api/rework-report/{id} -->
+      </div>
+
+      <div class="rework-modal-footer">
+        <div style="font-size: 12px; color: #94A3B8;">
+          Standard: <strong style="color: #E2E8F0;">IPC-A-610H Class 2/3</strong> &bull; SMT Engineering Rework Dispatch
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button class="ind-btn btn-secondary" id="btnPrintReworkModal"><i class="fa-solid fa-print"></i> Print / Save PDF</button>
+          <button class="ind-btn btn-primary" id="btnSendReworkModal"><i class="fa-solid fa-paper-plane"></i> Send to Rework Tech</button>
+          <button class="ind-btn btn-outline" id="btnCloseReworkModalFooter">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Stack -->
+  <div class="toast-stack" id="toastStack"></div>
 
   <!-- SMT CAD Centroid Ingestion Modal -->
   <div id="cadModal" class="webcam-modal-backdrop" style="display: none;">

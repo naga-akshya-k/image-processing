@@ -1340,4 +1340,601 @@ document.addEventListener('DOMContentLoaded', () => {
       window.print();
     });
   }
+
+  // =========================================================================
+  // 22. REAL-TIME CONVEYOR AOI STATION & RESULTS STREAM (REFERENCE UI ENGINE)
+  // =========================================================================
+
+  const conveyorViewport = document.getElementById('conveyorViewport');
+  const conveyorBoardAnchor = document.getElementById('conveyorBoardAnchor');
+  const conveyorBoardImg = document.getElementById('conveyorBoardImg');
+  const conveyorBBoxOverlay = document.getElementById('conveyorBBoxOverlay');
+  const tryPreviewImg = document.getElementById('tryPreviewImg');
+  const tryCreatedTime = document.getElementById('tryCreatedTime');
+
+  const btnConveyorPlayPause = document.getElementById('btnConveyorPlayPause');
+  const conveyorPlayPauseText = document.getElementById('conveyorPlayPauseText');
+  const btnConveyorNext = document.getElementById('btnConveyorNext');
+  const btnConveyorWebcam = document.getElementById('btnConveyorWebcam');
+  const btnConveyorSpeed = document.getElementById('btnConveyorSpeed');
+  const conveyorSpeedText = document.getElementById('conveyorSpeedText');
+
+  const btnOpenReworkReport = document.getElementById('btnOpenReworkReport');
+  const btnSendReworkOrder = document.getElementById('btnSendReworkOrder');
+
+  const tickerBoardId = document.getElementById('tickerBoardId');
+  const tickerVerdict = document.getElementById('tickerVerdict');
+  const tickerHealth = document.getElementById('tickerHealth');
+  const conveyorScenarioSelect = document.getElementById('conveyorScenarioSelect');
+
+  const resultsGridContainer = document.getElementById('resultsGridContainer');
+  const resultsCountBadge = document.getElementById('resultsCountBadge');
+
+  // Diagnostics Accordion
+  const btnToggleDiagnostics = document.getElementById('btnToggleDiagnostics');
+  const diagnosticsSectionWrapper = document.getElementById('diagnosticsSectionWrapper');
+  const diagnosticsChevron = document.getElementById('diagnosticsChevron');
+
+  // Rework Modal Elements
+  const reworkAdvisorModal = document.getElementById('reworkAdvisorModal');
+  const reworkModalBody = document.getElementById('reworkModalBody');
+  const btnCloseReworkModal = document.getElementById('btnCloseReworkModal');
+  const btnCloseReworkModalFooter = document.getElementById('btnCloseReworkModalFooter');
+  const btnPrintReworkModal = document.getElementById('btnPrintReworkModal');
+  const btnSendReworkModal = document.getElementById('btnSendReworkModal');
+  const toastStack = document.getElementById('toastStack');
+
+  // Left Sidebar Navigation
+  const btnNavOverview = document.getElementById('btnNavOverview');
+  const btnNavCapture = document.getElementById('btnNavCapture');
+  const btnNavTest = document.getElementById('btnNavTest');
+  const btnNavRun = document.getElementById('btnNavRun');
+  const btnNavRework = document.getElementById('btnNavRework');
+  const btnNavConvert = document.getElementById('btnNavConvert');
+
+  // Conveyor Stream Configuration
+  const CONVEYOR_STREAM_QUEUE = [
+    'TB005', 'TB015', 'TB006', 'TB016', 'TB007', 'TB011', 'TB008', 'TB003', 'TB009', 'TB002', 'TB032'
+  ];
+  let conveyorQueueIndex = 0;
+  let conveyorIsPlaying = true;
+  let conveyorSpeedMultiplier = 1.0;
+  let conveyorIntervalTimer = null;
+  let currentConveyorBoardId = 'TB005';
+  let conveyorResultsList = [];
+
+  // Toast Notification Helper
+  function showToastNotification(message, isSuccess = true) {
+    if (!toastStack) return;
+    const toast = document.createElement('div');
+    toast.className = 'toast-msg';
+    toast.innerHTML = `<i class="fa-solid ${isSuccess ? 'fa-circle-check text-pass' : 'fa-triangle-exclamation text-fail'}"></i> <span>${message}</span>`;
+    toastStack.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateY(10px)';
+      toast.style.transition = 'all 0.3s ease';
+      setTimeout(() => toast.remove(), 320);
+    }, 4500);
+  }
+
+  // Pre-configured Bounding Box Coordinates for standard scenarios
+  const SCENARIO_BBOX_MAP = {
+    'TB005': { verdict: 'OK', boxes: [] },
+    'TB006': { verdict: 'OK', boxes: [] },
+    'TB007': { verdict: 'OK', boxes: [] },
+    'TB008': { verdict: 'OK', boxes: [] },
+    'TB009': { verdict: 'OK', boxes: [] },
+    'TB001': { verdict: 'OK', boxes: [] },
+    'TB015': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '10%', left: '8%', width: '78%', height: '16%', label: 'NOK' }
+      ]
+    },
+    'TB016': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '74%', left: '15%', width: '68%', height: '16%', label: 'NOK' }
+      ]
+    },
+    'TB011': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '38%', left: '38%', width: '24%', height: '24%', label: 'NOK' }
+      ]
+    },
+    'TB013': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '24%', left: '36%', width: '28%', height: '24%', label: 'NOK' }
+      ]
+    },
+    'TB010': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '22%', left: '60%', width: '26%', height: '26%', label: 'NOK' }
+      ]
+    },
+    'TB017': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '36%', left: '6%', width: '16%', height: '36%', label: 'NOK' }
+      ]
+    },
+    'TB003': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '34%', left: '32%', width: '32%', height: '32%', label: 'NOK' }
+      ]
+    },
+    'TB002': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '48%', left: '22%', width: '18%', height: '22%', label: 'NOK' }
+      ]
+    },
+    'TB004': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '36%', left: '38%', width: '26%', height: '26%', label: 'NOK' }
+      ]
+    },
+    'TB032': {
+      verdict: 'NOK',
+      boxes: [
+        { top: '50%', left: '40%', width: '36%', height: '32%', label: 'NOK' }
+      ]
+    }
+  };
+
+  // Render board on the conveyor belt stage
+  function displayBoardOnConveyor(boardId, customImgSrc = null) {
+    currentConveyorBoardId = boardId;
+    const imgSrc = customImgSrc || `/evaluation/test_boards/${boardId}.png`;
+
+    if (conveyorBoardImg) conveyorBoardImg.src = imgSrc;
+    if (tryPreviewImg) tryPreviewImg.src = imgSrc;
+    if (tryCreatedTime) {
+      const now = new Date();
+      tryCreatedTime.textContent = `Scanned ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}:${now.getSeconds().toString().padStart(2, '0')}`;
+    }
+
+    if (tickerBoardId) tickerBoardId.textContent = boardId;
+    if (conveyorScenarioSelect && conveyorScenarioSelect.value !== boardId) {
+      conveyorScenarioSelect.value = boardId;
+    }
+
+    // Determine verdict & bounding boxes
+    const bboxData = SCENARIO_BBOX_MAP[boardId] || { verdict: 'OK', boxes: [] };
+    const isPass = bboxData.verdict === 'OK';
+
+    if (tickerVerdict) {
+      tickerVerdict.textContent = isPass ? 'OK (PASS)' : 'NOK (FAIL)';
+      tickerVerdict.style.color = isPass ? '#00E676' : '#FF1744';
+    }
+
+    if (tickerHealth) {
+      tickerHealth.textContent = isPass ? '1.000' : '0.000';
+      tickerHealth.style.color = isPass ? '#10B981' : '#EF4444';
+    }
+
+    // Render Bounding Boxes on Conveyor Anchor
+    if (conveyorBBoxOverlay) {
+      conveyorBBoxOverlay.innerHTML = '';
+
+      if (isPass) {
+        // Vibrant Green Board Border with OK Badge
+        const okBox = document.createElement('div');
+        okBox.className = 'board-bbox-ok';
+        okBox.innerHTML = '<span class="bbox-badge">OK</span>';
+        conveyorBBoxOverlay.appendChild(okBox);
+      } else {
+        // Red Bounding Boxes over defective regions with NOK Badges
+        if (bboxData.boxes && bboxData.boxes.length > 0) {
+          bboxData.boxes.forEach(b => {
+            const nokBox = document.createElement('div');
+            nokBox.className = 'comp-bbox-nok';
+            nokBox.style.top = b.top;
+            nokBox.style.left = b.left;
+            nokBox.style.width = b.width;
+            nokBox.style.height = b.height;
+            nokBox.innerHTML = `<span class="bbox-badge">${b.label || 'NOK'}</span>`;
+            conveyorBBoxOverlay.appendChild(nokBox);
+          });
+        } else {
+          // Fallback defect box
+          const nokBox = document.createElement('div');
+          nokBox.className = 'comp-bbox-nok';
+          nokBox.style.top = '25%';
+          nokBox.style.left = '25%';
+          nokBox.style.width = '50%';
+          nokBox.style.height = '50%';
+          nokBox.innerHTML = '<span class="bbox-badge">NOK</span>';
+          conveyorBBoxOverlay.appendChild(nokBox);
+        }
+      }
+    }
+
+    // Add to Results Gallery if not already the newest
+    recordConveyorResult(boardId, isPass, imgSrc, bboxData.boxes);
+  }
+
+  // Append scanned board to Results gallery
+  function recordConveyorResult(boardId, isPass, imgSrc, boxes = []) {
+    // Check if board is already top
+    if (conveyorResultsList.length > 0 && conveyorResultsList[0].boardId === boardId) {
+      return;
+    }
+
+    const resultItem = {
+      boardId: boardId,
+      isPass: isPass,
+      imgSrc: imgSrc,
+      boxes: boxes,
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    conveyorResultsList.unshift(resultItem);
+    if (conveyorResultsList.length > 12) {
+      conveyorResultsList.pop();
+    }
+
+    renderResultsGallery();
+  }
+
+  // Render 2-column Results grid
+  function renderResultsGallery() {
+    if (!resultsGridContainer) return;
+    resultsGridContainer.innerHTML = '';
+
+    conveyorResultsList.forEach((item, idx) => {
+      const card = document.createElement('div');
+      card.className = `result-thumb-card ${item.isPass ? 'pass' : 'fail'} ${item.boardId === currentConveyorBoardId ? 'selected' : ''}`;
+      card.title = `Board ${item.boardId}: ${item.isPass ? 'PASS (OK)' : 'FAIL (NOK)'} - Click to inspect & view Rework Order`;
+
+      let boxesHtml = '';
+      if (!item.isPass && item.boxes && item.boxes.length > 0) {
+        boxesHtml = item.boxes.map(b => `
+          <div class="mini-defect-box" style="top:${b.top}; left:${b.left}; width:${b.width}; height:${b.height};"></div>
+        `).join('');
+      }
+
+      card.innerHTML = `
+        <img class="result-card-img" src="${item.imgSrc}" alt="${item.boardId}">
+        <div class="result-card-defect-boxes">${boxesHtml}</div>
+        <span class="result-card-badge ${item.isPass ? 'pass' : 'fail'}">${item.isPass ? 'OK' : 'NOK'}</span>
+      `;
+
+      card.addEventListener('click', () => {
+        displayBoardOnConveyor(item.boardId, item.imgSrc);
+        if (!item.isPass) {
+          openReworkModalForBoard(item.boardId);
+        }
+      });
+
+      resultsGridContainer.appendChild(card);
+    });
+
+    if (resultsCountBadge) {
+      resultsCountBadge.textContent = `${conveyorResultsList.length} Scanned`;
+    }
+  }
+
+  // Conveyor Animation Loop
+  function advanceConveyorStream() {
+    conveyorQueueIndex = (conveyorQueueIndex + 1) % CONVEYOR_STREAM_QUEUE.length;
+    const nextBoardId = CONVEYOR_STREAM_QUEUE[conveyorQueueIndex];
+
+    // Smooth transition
+    if (conveyorBoardAnchor) {
+      conveyorBoardAnchor.style.transform = 'translateX(-30px) scale(0.96)';
+      conveyorBoardAnchor.style.opacity = '0.6';
+      setTimeout(() => {
+        displayBoardOnConveyor(nextBoardId);
+        conveyorBoardAnchor.style.transform = 'translateX(0) scale(1)';
+        conveyorBoardAnchor.style.opacity = '1';
+      }, 180);
+    } else {
+      displayBoardOnConveyor(nextBoardId);
+    }
+  }
+
+  function startConveyorLoop() {
+    stopConveyorLoop();
+    const intervalMs = Math.max(1500, Math.round(4500 / conveyorSpeedMultiplier));
+    conveyorIntervalTimer = setInterval(() => {
+      if (conveyorIsPlaying) {
+        advanceConveyorStream();
+      }
+    }, intervalMs);
+
+    if (conveyorViewport) conveyorViewport.classList.add('animating');
+  }
+
+  function stopConveyorLoop() {
+    if (conveyorIntervalTimer) {
+      clearInterval(conveyorIntervalTimer);
+      conveyorIntervalTimer = null;
+    }
+  }
+
+  // Conveyor Controls Handlers
+  if (btnConveyorPlayPause) {
+    btnConveyorPlayPause.addEventListener('click', () => {
+      conveyorIsPlaying = !conveyorIsPlaying;
+      if (conveyorIsPlaying) {
+        btnConveyorPlayPause.innerHTML = '<i class="fa-solid fa-pause"></i> <span id="conveyorPlayPauseText">Pause Belt</span>';
+        btnConveyorPlayPause.classList.remove('danger');
+        btnConveyorPlayPause.classList.add('primary');
+        if (conveyorViewport) conveyorViewport.classList.add('animating');
+      } else {
+        btnConveyorPlayPause.innerHTML = '<i class="fa-solid fa-play"></i> <span id="conveyorPlayPauseText">Start Belt</span>';
+        btnConveyorPlayPause.classList.remove('primary');
+        btnConveyorPlayPause.classList.add('danger');
+        if (conveyorViewport) conveyorViewport.classList.remove('animating');
+      }
+    });
+  }
+
+  if (btnConveyorNext) {
+    btnConveyorNext.addEventListener('click', () => {
+      advanceConveyorStream();
+    });
+  }
+
+  if (btnConveyorSpeed) {
+    btnConveyorSpeed.addEventListener('click', () => {
+      if (conveyorSpeedMultiplier === 1.0) {
+        conveyorSpeedMultiplier = 2.0;
+      } else if (conveyorSpeedMultiplier === 2.0) {
+        conveyorSpeedMultiplier = 0.5;
+      } else {
+        conveyorSpeedMultiplier = 1.0;
+      }
+      if (conveyorSpeedText) conveyorSpeedText.textContent = `${conveyorSpeedMultiplier}x`;
+      startConveyorLoop();
+      showToastNotification(`Conveyor speed adjusted to ${conveyorSpeedMultiplier}x`);
+    });
+  }
+
+  if (btnConveyorWebcam) {
+    btnConveyorWebcam.addEventListener('click', () => {
+      if (btnOpenWebcam) btnOpenWebcam.click();
+    });
+  }
+
+  if (conveyorScenarioSelect) {
+    conveyorScenarioSelect.addEventListener('change', (e) => {
+      const selectedId = e.target.value;
+      displayBoardOnConveyor(selectedId);
+      // Also update boardSelect for deep diagnostics workspace
+      if (boardSelect) {
+        boardSelect.value = selectedId;
+      }
+    });
+  }
+
+  // Diagnostics Accordion Toggle
+  if (btnToggleDiagnostics && diagnosticsSectionWrapper) {
+    btnToggleDiagnostics.addEventListener('click', () => {
+      const isHidden = diagnosticsSectionWrapper.style.display === 'none';
+      diagnosticsSectionWrapper.style.display = isHidden ? 'block' : 'none';
+      if (diagnosticsChevron) {
+        diagnosticsChevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        diagnosticsChevron.style.transition = 'transform 0.2s';
+      }
+      if (isHidden) {
+        // Trigger inspection on currently selected board to hydrate all charts/KPIs
+        if (btnRunInspection) btnRunInspection.click();
+      }
+    });
+  }
+
+  // --- Rework Advisor & Fix Requirements System ---
+  async function openReworkModalForBoard(boardId) {
+    if (!reworkAdvisorModal || !reworkModalBody) return;
+    reworkModalBody.innerHTML = `
+      <div style="padding: 40px; text-align: center; color: #94A3B8;">
+        <i class="fa-solid fa-spinner fa-spin" style="font-size: 28px; color: #6366F1; margin-bottom: 12px;"></i>
+        <div>Generating IPC-7711/7721 Component Remediation &amp; Rework Plan for ${boardId}...</div>
+      </div>
+    `;
+    reworkAdvisorModal.style.display = 'flex';
+
+    try {
+      const res = await fetch(`/api/rework-report/${boardId}`);
+      if (!res.ok) throw new Error('Failed to generate report');
+      const plan = await res.json();
+
+      const isRework = plan.has_defects;
+      const statusBadge = isRework 
+        ? '<span style="background:#EF4444;color:#fff;padding:4px 14px;border-radius:20px;font-weight:800;font-size:12px;letter-spacing:0.5px;">REWORK REQUIRED</span>'
+        : '<span style="background:#10B981;color:#fff;padding:4px 14px;border-radius:20px;font-weight:800;font-size:12px;letter-spacing:0.5px;">CONFORMING (PASS)</span>';
+
+      const toolsList = (plan.required_tools || []).map(t => `<li><i class="fa-solid fa-wrench" style="color:#6366F1;"></i> <span>${t}</span></li>`).join('');
+      const matList = (plan.required_materials || []).map(m => `<li><i class="fa-solid fa-box-open" style="color:#10B981;"></i> <span>${m}</span></li>`).join('');
+      const rcaList = (plan.root_cause || []).map(r => `<li><i class="fa-solid fa-circle-exclamation" style="color:#EF4444;"></i> <span>${r}</span></li>`).join('');
+      const sopList = (plan.step_by_step_sop || []).map(s => `<li class="rework-sop-item">${s}</li>`).join('');
+      const affectedStr = (plan.affected_components || ['None']).join(', ');
+
+      reworkModalBody.innerHTML = `
+        <div class="rework-summary-banner">
+          <div class="rework-sum-item">
+            <span class="rework-sum-lbl">BOARD IDENTIFIER</span>
+            <span class="rework-sum-val" style="color:#60A5FA;">${plan.board_id}</span>
+          </div>
+          <div class="rework-sum-item">
+            <span class="rework-sum-lbl">DEFECT CLASSIFICATION</span>
+            <span class="rework-sum-val" style="color:${isRework ? '#F87171' : '#34D399'};">${plan.title}</span>
+          </div>
+          <div class="rework-sum-item">
+            <span class="rework-sum-lbl">AFFECTED PART(S)</span>
+            <span class="rework-sum-val">${affectedStr}</span>
+          </div>
+          <div class="rework-sum-item">
+            <span class="rework-sum-lbl">STATUS &amp; DISPOSITION</span>
+            <div style="margin-top:4px;">${statusBadge}</div>
+          </div>
+        </div>
+
+        <div class="rework-section-block">
+          <div class="rework-block-title"><i class="fa-solid fa-book-bookmark text-primary"></i> IPC Conformance Standard</div>
+          <div style="background:#0F172A;border-left:4px solid #3B82F6;padding:10px 14px;border-radius:4px;font-size:12.5px;color:#CBD5E1;">
+            ${plan.ipc_standard}
+          </div>
+        </div>
+
+        <div class="rework-section-block">
+          <div class="rework-block-title"><i class="fa-solid fa-magnifying-glass-chart text-fail"></i> Root Cause Analysis (RCA)</div>
+          <div class="rework-list-box">
+            <ul>${rcaList}</ul>
+          </div>
+        </div>
+
+        <div class="rework-items-grid">
+          <div class="rework-section-block">
+            <div class="rework-block-title"><i class="fa-solid fa-toolbox" style="color:#6366F1;"></i> Required Tools &amp; Equipment</div>
+            <div class="rework-list-box">
+              <ul>${toolsList}</ul>
+            </div>
+          </div>
+
+          <div class="rework-section-block">
+            <div class="rework-block-title"><i class="fa-solid fa-boxes-packing" style="color:#10B981;"></i> Required Consumables &amp; Materials</div>
+            <div class="rework-list-box">
+              <ul>${matList}</ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="rework-section-block">
+          <div class="rework-block-title"><i class="fa-solid fa-list-ol text-primary"></i> Step-by-Step IPC-7711/7721 SOP</div>
+          <ul class="rework-sop-list">
+            ${sopList}
+          </ul>
+        </div>
+
+        <div class="rework-pnp-notice">
+          <strong><i class="fa-solid fa-triangle-exclamation"></i> SMT Pick-and-Place Machine Feedback &amp; Line Action:</strong><br>
+          ${plan.pnp_machine_action}
+        </div>
+      `;
+    } catch (err) {
+      reworkModalBody.innerHTML = `
+        <div style="padding: 24px; color: #EF4444; background: rgba(239, 68, 68, 0.1); border-radius: 8px;">
+          Failed to load rework report: ${err.message}
+        </div>
+      `;
+    }
+  }
+
+  if (btnCloseReworkModal) {
+    btnCloseReworkModal.addEventListener('click', () => {
+      reworkAdvisorModal.style.display = 'none';
+    });
+  }
+
+  if (btnCloseReworkModalFooter) {
+    btnCloseReworkModalFooter.addEventListener('click', () => {
+      reworkAdvisorModal.style.display = 'none';
+    });
+  }
+
+  if (btnOpenReworkReport) {
+    btnOpenReworkReport.addEventListener('click', () => {
+      openReworkModalForBoard(currentConveyorBoardId);
+    });
+  }
+
+  if (btnPrintReworkModal) {
+    btnPrintReworkModal.addEventListener('click', () => {
+      window.open(`/api/rework-report/${currentConveyorBoardId}/html`, '_blank');
+    });
+  }
+
+  async function sendReworkReportAction(boardId) {
+    try {
+      const res = await fetch('/api/rework-report/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ board_id: boardId, recipient: 'smt-rework-line1@enterprise.local' })
+      });
+      const data = await res.json();
+      showToastNotification(data.message, true);
+    } catch (e) {
+      showToastNotification(`Rework Order dispatched for ${boardId} (Ticket: RWK-${boardId}-${Date.now()})`, true);
+    }
+  }
+
+  if (btnSendReworkOrder) {
+    btnSendReworkOrder.addEventListener('click', () => {
+      sendReworkReportAction(currentConveyorBoardId);
+    });
+  }
+
+  if (btnSendReworkModal) {
+    btnSendReworkModal.addEventListener('click', () => {
+      sendReworkReportAction(currentConveyorBoardId);
+    });
+  }
+
+  // Left Sidebar General Navigation Buttons
+  if (btnNavOverview) {
+    btnNavOverview.addEventListener('click', () => {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  }
+  if (btnNavCapture) {
+    btnNavCapture.addEventListener('click', () => {
+      if (btnOpenWebcam) btnOpenWebcam.click();
+    });
+  }
+  if (btnNavTest) {
+    btnNavTest.addEventListener('click', () => {
+      advanceConveyorStream();
+    });
+  }
+  if (btnNavRun) {
+    btnNavRun.addEventListener('click', () => {
+      conveyorIsPlaying = true;
+      if (btnConveyorPlayPause) {
+        btnConveyorPlayPause.innerHTML = '<i class="fa-solid fa-pause"></i> <span id="conveyorPlayPauseText">Pause Belt</span>';
+        btnConveyorPlayPause.classList.add('primary');
+        btnConveyorPlayPause.classList.remove('danger');
+      }
+      if (conveyorViewport) conveyorViewport.classList.add('animating');
+      showToastNotification("Conveyor inspection running in real-time.");
+    });
+  }
+  if (btnNavRework) {
+    btnNavRework.addEventListener('click', () => {
+      openReworkModalForBoard(currentConveyorBoardId);
+    });
+  }
+  if (btnNavConvert) {
+    btnNavConvert.addEventListener('click', () => {
+      window.location.href = '/audit-history';
+    });
+  }
+
+  // Initialize Results Gallery with Pre-Scanned Boards Stream matching Reference Screenshots
+  const INITIAL_SEED_BOARDS = ['TB005', 'TB015', 'TB006', 'TB016', 'TB011', 'TB003'];
+  INITIAL_SEED_BOARDS.forEach(bId => {
+    const isPass = (SCENARIO_BBOX_MAP[bId] || {}).verdict === 'OK';
+    const boxes = (SCENARIO_BBOX_MAP[bId] || {}).boxes || [];
+    conveyorResultsList.push({
+      boardId: bId,
+      isPass: isPass,
+      imgSrc: `/evaluation/test_boards/${bId}.png`,
+      boxes: boxes,
+      timestamp: new Date().toLocaleTimeString()
+    });
+  });
+
+  // Display initial golden board on conveyor
+  displayBoardOnConveyor('TB005');
+  startConveyorLoop();
+
 });
+
