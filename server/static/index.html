@@ -379,17 +379,40 @@
 
   <!-- Live Webcam Modal Stream -->
   <div id="webcamModal" class="webcam-modal-backdrop" style="display: none;">
-    <div class="webcam-modal-content">
+    <div class="webcam-modal-content" style="max-width: 680px;">
       <div class="webcam-modal-header">
-        <h3><i class="fa-solid fa-camera"></i> Live Optical Capture</h3>
+        <h3><i class="fa-solid fa-camera text-primary"></i> Live Optical Inspection & Board Framing</h3>
         <button id="btnCloseWebcam" class="btn-close-modal"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="webcam-video-box">
         <video id="modalWebcamVideo" autoplay playsinline></video>
         <canvas id="modalWebcamCanvas" hidden></canvas>
+
+        <!-- Live PCB Targeting Viewfinder HUD Overlay -->
+        <div id="webcamTargetReticle" class="webcam-target-reticle">
+          <div class="reticle-corner reticle-tl"></div>
+          <div class="reticle-corner reticle-tr"></div>
+          <div class="reticle-corner reticle-bl"></div>
+          <div class="reticle-corner reticle-br"></div>
+          <div class="reticle-crosshair"></div>
+          <div class="reticle-tag">
+            <i class="fa-solid fa-crosshairs"></i> ALIGN PCB INSIDE FRAME
+          </div>
+          <div class="reticle-subtag">Keep hands & background outside target box</div>
+        </div>
       </div>
       <div class="webcam-modal-footer">
-        <button id="btnCaptureModalWebcam" class="ind-btn btn-primary"><i class="fa-solid fa-circle-dot"></i> Capture and Inspect</button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <label style="display: flex; align-items: center; gap: 6px; font-size: 13px; color: #E2E8F0; cursor: pointer; user-select: none;">
+            <input type="checkbox" id="chkAutoCropBoard" checked style="accent-color: #10B981; width: 16px; height: 16px;">
+            <span><strong>Crop to Board Frame</strong> (Removes Hands & Background)</span>
+          </label>
+        </div>
+        <div style="display: flex; gap: 10px;">
+          <button id="btnCaptureModalWebcam" class="ind-btn btn-primary" style="padding: 10px 20px; font-weight: 700;">
+            <i class="fa-solid fa-bullseye"></i> Capture & Inspect PCB
+          </button>
+        </div>
       </div>
     </div>
   </div>

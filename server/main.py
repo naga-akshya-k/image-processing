@@ -1423,7 +1423,7 @@ async def inspect_board(
     else:
         custom_board_filename = f"custom_{board_serial}_{int(time.time()*1000)}.png"
         custom_active_path = os.path.join(STATIC_BOARDS_DIR, custom_board_filename)
-        cv2.imwrite(custom_active_path, test_img)
+        cv2.imwrite(custom_active_path, aligned_img)
         _ACTIVE_INSPECTION_STATE["image_url"] = f"/static/boards/{custom_board_filename}"
 
     # 9. Session Audit History Tracking

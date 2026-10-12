@@ -348,11 +348,43 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (btnCaptureModalWebcam) {
     btnCaptureModalWebcam.addEventListener('click', () => {
-      if (!modalWebcamVideo.videoWidth) return;
-      modalWebcamCanvas.width = modalWebcamVideo.videoWidth;
-      modalWebcamCanvas.height = modalWebcamVideo.videoHeight;
+      const vWidth = modalWebcamVideo.videoWidth;
+      const vHeight = modalWebcamVideo.videoHeight;
+      if (!vWidth || !vHeight) return;
+
+      const chkAutoCropBoard = document.getElementById('chkAutoCropBoard');
+      const webcamTargetReticle = document.getElementById('webcamTargetReticle');
+      const shouldCrop = chkAutoCropBoard ? chkAutoCropBoard.checked : true;
+
       const ctx = modalWebcamCanvas.getContext('2d');
-      ctx.drawImage(modalWebcamVideo, 0, 0);
+
+      if (shouldCrop && webcamTargetReticle) {
+        // Calculate the relative bounding box of the reticle within the video element box
+        const videoBox = modalWebcamVideo.parentElement;
+        const boxRect = videoBox.getBoundingClientRect();
+        const reticleRect = webcamTargetReticle.getBoundingClientRect();
+
+        // Calculate fractional coordinates within the video box element
+        const fracX = Math.max(0, (reticleRect.left - boxRect.left) / boxRect.width);
+        const fracY = Math.max(0, (reticleRect.top - boxRect.top) / boxRect.height);
+        const fracW = Math.min(1.0 - fracX, reticleRect.width / boxRect.width);
+        const fracH = Math.min(1.0 - fracY, reticleRect.height / boxRect.height);
+
+        // Map to video native source coordinates
+        const srcX = Math.round(fracX * vWidth);
+        const srcY = Math.round(fracY * vHeight);
+        const srcW = Math.round(fracW * vWidth);
+        const srcH = Math.round(fracH * vHeight);
+
+        // Output cropped PCB to high-resolution square (1024x1024 standard AOI inspection standard)
+        modalWebcamCanvas.width = 1024;
+        modalWebcamCanvas.height = 1024;
+        ctx.drawImage(modalWebcamVideo, srcX, srcY, srcW, srcH, 0, 0, 1024, 1024);
+      } else {
+        modalWebcamCanvas.width = vWidth;
+        modalWebcamCanvas.height = vHeight;
+        ctx.drawImage(modalWebcamVideo, 0, 0);
+      }
 
       modalWebcamCanvas.toBlob((blob) => {
         const file = new File([blob], "live_camera_capture.png", { type: "image/png" });
