@@ -1,0 +1,26 @@
+# Git
+.git
+.gitignore
+
+# Python cache and environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs and runtime artifacts
+*.log
+*.tmp
+.DS_Store
+Thumbs.db

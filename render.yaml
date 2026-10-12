@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: pcb-ai-inspection
+    runtime: docker
+    region: oregon
+    plan: free
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: PCB_AOI_ENV
+        value: production
+      - key: PCB_AOI_REQUIRE_API_KEY
+        value: "0"
+      - key: PCB_AOI_USE_DEPTH_MODEL
+        value: "0"
+      - key: LOG_LEVEL
+        value: INFO

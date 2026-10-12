@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Photometric Stereo 3D Solder Inspection — PCB AI Station</title>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    .ps-grid-3panel {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      min-height: 380px;
+      gap: 16px;
+      margin-top: 16px;
+    }
+    @media (max-width: 1100px) {
+      .ps-grid-3panel {
+        grid-template-columns: 1fr;
+      }
+      .ps-viewport-box {
+        min-height: 340px;
+      }
+    }
+    .ps-viewport-box {
+      background: #060913;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 380px;
+    }
+    .ps-viewport-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .ps-tag-label {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(6px);
+      border: 1px solid #334155;
+      padding: 4px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono, monospace);
+      color: #38bdf8;
+      z-index: 5;
+    }
+    .ps-telemetry-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .ps-kpi-card {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
+      padding: 14px 18px;
+      border-radius: 8px;
+    }
+    .ps-kpi-lbl {
+      font-size: 11px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+    .ps-kpi-val {
+      font-size: 20px;
+      font-weight: 800;
+      font-family: var(--font-mono, monospace);
+      margin-top: 4px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="ind-header">
+    <div class="header-left">
+      <div class="company-brand">
+        <div class="brand-logo"><i class="fa-solid fa-microchip"></i></div>
+        <div class="brand-meta">
+          <div class="brand-name">PCB AI Metrology & AOI Station</div>
+          <div class="brand-sub">Multi-Angle RGB Photometric Stereo 3D Solder Inspection</div>
+        </div>
+      </div>
+      <div class="standards-pills">
+        <span class="pill pill-standard"><i class="fa-solid fa-certificate"></i> IPC-A-610H Wetting</span>
+        <span class="pill pill-version"><i class="fa-solid fa-layer-group"></i> 3D Surface Normals</span>
+      </div>
+    </div>
+    <div class="telemetry-panel">
+      <div class="telem-item">
+        <div class="telem-dot active"></div>
+        <div class="telem-info">
+          <span class="telem-label">PHYSICS ENGINE</span>
+          <span class="telem-val text-pass">PHOTOMETRIC STEREO ONLINE</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Navigation Menu -->
+    <nav class="ind-nav-menu">
+    <a href="/" class="nav-tab-btn"><i class="fa-solid fa-camera-retro"></i> Live Inspection</a>
+    <a href="/3d-view" class="nav-tab-btn"><i class="fa-solid fa-cube"></i> 360° 3D Digital Twin</a>
+    <a href="/photometric-studio" class="nav-tab-btn"><i class="fa-solid fa-wand-magic-sparkles"></i> 3D Photometric Studio</a>
+    <a href="/xray-studio" class="nav-tab-btn"><i class="fa-solid fa-radiation"></i> 3D X-Ray Studio</a>
+    <a href="/photometric" class="nav-tab-btn active"><i class="fa-solid fa-layer-group"></i> Photometric Stereo</a>
+    <a href="/metrology" class="nav-tab-btn"><i class="fa-solid fa-ruler-combined"></i> IPC-A-610 Metrology</a>
+    <a href="/analytics" class="nav-tab-btn"><i class="fa-solid fa-chart-pie"></i> Statistical Analytics</a>
+    <a href="/spc" class="nav-tab-btn"><i class="fa-solid fa-chart-line"></i> SPC Control Charts</a>
+    <a href="/msa" class="nav-tab-btn"><i class="fa-solid fa-flask"></i> Gage R&R (MSA)</a>
+    <a href="/cfx" class="nav-tab-btn"><i class="fa-solid fa-satellite-dish"></i> Industry 4.0 CFX</a>
+    <a href="/audit" class="nav-tab-btn"><i class="fa-solid fa-file-shield"></i> ISO 9001 Audit</a>
+    <a href="/audit-history" class="nav-tab-btn"><i class="fa-solid fa-clock-rotate-left"></i> Inspection Audit</a>
+    <a href="/download-zip" class="nav-tab-btn" style="background: linear-gradient(135deg, #10b981, #059669); color: #ffffff !important; font-weight: bold; border-color: #34d399; margin-left: auto;" download><i class="fa-solid fa-file-zipper"></i> Download Suite (.ZIP)</a>
+  </nav>
+
+  <main style="padding: 20px 24px; max-width: 1440px; margin: 0 auto;">
+    <!-- Active Board Context Bar -->
+    <div id="ps-context-banner" style="background: rgba(15, 23, 42, 0.85); border: 1px solid #1e293b; border-left: 4px solid #38bdf8; padding: 12px 18px; border-radius: 8px; margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <span style="font-size: 11px; font-weight: 800; color: #94a3b8; text-transform: uppercase;"><i class="fa-solid fa-microchip text-cyan"></i> ACTIVE BOARD CONTEXT:</span>
+        <strong id="ps-active-board-label" style="color: #38bdf8; font-size: 14px;">TB005 — 100% Perfect Golden Master</strong>
+      </div>
+      <div style="display: flex; align-items: center; gap: 8px;">
+        <span class="tag-badge" id="ps-active-target-badge" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8; border: 1px solid #0284c7; font-size: 11px;">
+          <i class="fa-solid fa-layer-group"></i> 4-LIGHT STEREO SURFACE RECONSTRUCTION
+        </span>
+      </div>
+    </div>
+
+    <!-- Board-Specific Defect Summary Bar -->
+    <div id="ps-defect-summary-bar" style="background: rgba(15, 23, 42, 0.7); border: 1px solid #334155; padding: 12px 18px; border-radius: 8px; margin-bottom: 14px; display: grid; grid-template-columns: auto 1fr auto auto auto; gap: 16px; align-items: center; flex-wrap: wrap;">
+      <div>
+        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">ACTIVE BOARD</div>
+        <div id="ps-sum-board-id" style="font-size: 16px; font-weight: 800; color: #38bdf8; font-family: var(--font-mono, monospace);">TB005</div>
+      </div>
+      <div style="min-width: 200px;">
+        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">DEFECT</div>
+        <div id="ps-sum-defect" style="font-size: 13px; font-weight: 700; color: #f8fafc;">NO DEFECT DETECTED</div>
+      </div>
+      <div>
+        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">SEVERITY</div>
+        <div id="ps-sum-severity" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 4px; display: inline-block; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981; font-family: var(--font-mono, monospace);">NONE (CONFORMING)</div>
+      </div>
+      <div>
+        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">HEALTH INDEX</div>
+        <div id="ps-sum-health-index" style="font-size: 16px; font-weight: 800; color: #34d399; font-family: var(--font-mono, monospace);">100/100</div>
+      </div>
+      <div>
+        <div style="font-size: 10px; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.5px;">BOARD USABILITY</div>
+        <div id="ps-sum-usability" style="font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 4px; display: inline-block; background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid #10b981; font-family: var(--font-mono, monospace);">USABLE / RELEASED</div>
+      </div>
+    </div>
+
+    <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid #334155; padding: 16px 20px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+      <div>
+        <h2 style="font-size: 17px; font-weight: 700; color: #f8fafc; margin-bottom: 4px;">
+          <i class="fa-solid fa-circle-nodes text-cyan"></i> Multi-Spectral Color Highlight & Solder Meniscus 3D Profiler
+        </h2>
+        <p style="font-size: 13px; color: #94a3b8; margin: 0;">
+          Recovers 3D surface normals ($[N_x, N_y, N_z]$) from Red ($75^\circ$), Green ($45^\circ$), and Blue ($20^\circ$) ring lighting. Reconstructs physical solder fillet wetting angle and surface slope gradients.
+        </p>
+      </div>
+
+      <!-- Solder Joint Scenario Selector & Upload -->
+      <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <label style="font-size: 13px; color: #cbd5e1; font-weight: 600;">Active Board Target:</label>
+        <select id="ps-scenario-select" class="ind-select" style="padding: 8px 14px; background: #0f172a; color: #fff; border: 1px solid #3b82f6; border-radius: 6px; font-weight: 600;" onchange="if(this.value) handleBoardSelect(this.value)">
+          <option value="ACTIVE_LIVE">⚡ Active Inspected Board</option>
+          <optgroup label="Golden Standard Boards">
+            <option value="TB001">TB001 - Production Batch Golden Sample (PASS)</option>
+            <option value="TB005" selected>TB005 - 100% Perfect Golden Master (PASS)</option>
+            <option value="TB006">TB006 - Golden Production Board 2 (PASS)</option>
+            <option value="TB007">TB007 - Golden Production Board 3 (PASS)</option>
+            <option value="TB008">TB008 - Golden Production Board 4 (PASS)</option>
+            <option value="TB009">TB009 - Golden Production Board 5 (PASS)</option>
+          </optgroup>
+          <optgroup label="Defect Detection Boards (IPC-A-610 Failures)">
+            <option value="TB002">TB002 - C_R1 Tombstoned (45° Tilt Lift) (REWORK)</option>
+            <option value="TB003">TB003 - Mid-Upper Controller (U2) Angular Tilt (REWORK)</option>
+            <option value="TB004">TB004 - Top-Right MCU (U1) Placement Shift (REWORK)</option>
+            <option value="TB010">TB010 - Top-Right MCU (U1) Missing (FAIL)</option>
+            <option value="TB011">TB011 - Center QFN Processor (U5) Missing (FAIL)</option>
+            <option value="TB012">TB012 - Top-Right Controller (U1) Missing (FAIL)</option>
+            <option value="TB013">TB013 - Mid-Upper Controller (U2) Missing (FAIL)</option>
+            <option value="TB014">TB014 - Multi-Part Missing (U3 + C_R2) (FAIL)</option>
+            <option value="TB015">TB015 - Top Bus Header (J_TOP) Missing (FAIL)</option>
+            <option value="TB016">TB016 - Bottom Header Left (J_BOT1) Missing (FAIL)</option>
+            <option value="TB017">TB017 - Left Passives Matrix (BANK_L1) Missing (FAIL)</option>
+            <option value="TB018">TB018 - Bottom-Right MCU (U4) Missing (FAIL)</option>
+            <option value="TB019">TB019 - Lower Passives Bank (BANK_L2) Missing (FAIL)</option>
+            <option value="TB020">TB020 - Multi-IC Missing (U1 + U5) (FAIL)</option>
+            <option value="TB021">TB021 - Multi-Part Missing (J_BOT2 + BANK_L2) (FAIL)</option>
+            <option value="TB022">TB022 - Triple IC Missing (U2 + U3 + U4) (FAIL)</option>
+            <option value="TB023">TB023 - C_R2 Tombstone (REWORK)</option>
+            <option value="TB024">TB024 - C_R1 Tombstone (REWORK)</option>
+            <option value="TB025">TB025 - U5 Angular Tilt (REWORK)</option>
+            <option value="TB026">TB026 - U3 Angular Tilt (REWORK)</option>
+            <option value="TB027">TB027 - U2 Placement Shift (REWORK)</option>
+            <option value="TB028">TB028 - U3 Placement Shift (REWORK)</option>
+            <option value="TB029">TB029 - Production Framing Drift 1 (PASS)</option>
+            <option value="TB030">TB030 - Production Framing Drift 2 (PASS)</option>
+            <option value="TB031">TB031 - Multi-IC Missing (U1 + U4) (FAIL)</option>
+            <option value="TB032">TB032 - Severe Substrate Burn & FR-4 Rupture (FAIL)</option>
+          </optgroup>
+          <optgroup label="🏭 Production Line Scenarios (TB033 - TB040)">
+            <option value="TB033">TB033 - In-Line Conforming Production Batch (PASS)</option>
+            <option value="TB034">TB034 - U4 MCU Angular Skew (16.5°) (REWORK)</option>
+            <option value="TB035">TB035 - U3 Controller Missing Component (FAIL)</option>
+            <option value="TB036">TB036 - U2 QFP Solder Bridge Short (FAIL)</option>
+            <option value="TB037">TB037 - J_TOP Contact Open & Broken Trace (FAIL)</option>
+            <option value="TB038">TB038 - Multi-Defect Assembly (U5 Shift + C_R1 Tombstone) (FAIL)</option>
+            <option value="TB039">TB039 - BANK_L1 Substrate Scratch & Gouge (FAIL)</option>
+            <option value="TB040">TB040 - Power Bus (J_BOT2) Thermal Charring & Delamination (FAIL)</option>
+          </optgroup>
+        </select>
+        <label class="ind-btn" style="padding: 8px 14px; background: #2563eb; color: #fff; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px;">
+          <i class="fa-solid fa-cloud-arrow-up"></i> Upload Solder Image
+          <input type="file" id="ps-upload-input" accept="image/*" style="display: none;">
+        </label>
+      </div>
+    </div>
+
+    <!-- 3-Panel Grid -->
+    <div class="ps-grid-3panel">
+      <!-- Panel 1: Multi-Angle RGB Illumination -->
+      <div class="ps-viewport-box">
+        <span class="ps-tag-label" id="ps-tag-p1"><i class="fa-solid fa-palette"></i> 1. MULTI-ANGLE RGB INPUT</span>
+        <img id="ps-img-rgb" src="/static/placeholder.png" alt="RGB Raw Illumination">
+      </div>
+
+      <!-- Panel 2: 3D Surface Normal Map (Nx, Ny, Nz) -->
+      <div class="ps-viewport-box">
+        <span class="ps-tag-label" id="ps-tag-p2"><i class="fa-solid fa-compass"></i> 2. 3D SURFACE NORMAL VECTOR MAP (Nx, Ny, Nz)</span>
+        <img id="ps-img-normals" src="/static/placeholder.png" alt="Surface Normal Map">
+      </div>
+
+      <!-- Panel 3: Solder Wetting Angle Heatmap -->
+      <div class="ps-viewport-box">
+        <span class="ps-tag-label" id="ps-tag-p3"><i class="fa-solid fa-ruler-combined"></i> 3. IPC-A-610 WETTING ANGLE HEATMAP (θ = arccos Nz)</span>
+        <img id="ps-img-slopes" src="/static/placeholder.png" alt="Wetting Angle Map">
+      </div>
+    </div>
+
+    <!-- Telemetry KPIs -->
+    <div class="ps-telemetry-bar">
+      <div class="ps-kpi-card">
+        <div class="ps-kpi-lbl">MEAN WETTING ANGLE (θ)</div>
+        <div id="ps-kpi-angle" class="ps-kpi-val" style="color: #38bdf8;">--</div>
+      </div>
+      <div class="ps-kpi-card">
+        <div class="ps-kpi-lbl">PEAK SOLDER HEIGHT (Z)</div>
+        <div id="ps-kpi-height" class="ps-kpi-val" style="color: #34d399;">--</div>
+      </div>
+      <div class="ps-kpi-card">
+        <div class="ps-kpi-lbl">IPC-A-610 CONFORMANCE</div>
+        <div id="ps-kpi-ipc" class="ps-kpi-val" style="color: #94a3b8; font-size: 16px;">AWAITING INPUT</div>
+      </div>
+      <div class="ps-kpi-card">
+        <div class="ps-kpi-lbl">MENISCUS CURVATURE STATUS</div>
+        <div id="ps-kpi-status" class="ps-kpi-val" style="color: #94a3b8; font-size: 16px;">STANDBY</div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/common.js"></script>
+  <script>
+    let currentPhotometricBoard = null;
+
+    async function loadBoardPhotometric(boardId) {
+      if (!boardId) return;
+      const bId = String(boardId).trim().toUpperCase();
+      currentPhotometricBoard = bId;
+
+      try {
+        const res = await fetch(`/api/photometric/reconstruct?board_id=${encodeURIComponent(bId)}`);
+        if (!res.ok) throw new Error("Reconstruction failed");
+        const data = await res.json();
+
+        // 1. Top context bar
+        const lbl = document.getElementById("ps-active-board-label");
+        if (lbl) {
+          lbl.textContent = `${data.board_id} — ${data.scenario_name}`;
+        }
+
+        // 2. Compact Defect Summary Bar
+        const sumBoard = document.getElementById("ps-sum-board-id");
+        const sumDefect = document.getElementById("ps-sum-defect");
+        const sumSev = document.getElementById("ps-sum-severity");
+        const sumHi = document.getElementById("ps-sum-health-index");
+        const sumUse = document.getElementById("ps-sum-usability");
+
+        if (sumBoard) sumBoard.textContent = data.board_id;
+        if (sumDefect) sumDefect.textContent = data.defect_description;
+        if (sumSev) {
+          sumSev.textContent = data.severity;
+          if (data.severity.includes("CRITICAL")) {
+            sumSev.style.color = "#ef4444";
+            sumSev.style.background = "rgba(239, 68, 68, 0.15)";
+            sumSev.style.borderColor = "#ef4444";
+          } else if (data.severity.includes("MODERATE") || data.severity.includes("REWORK")) {
+            sumSev.style.color = "#f59e0b";
+            sumSev.style.background = "rgba(245, 158, 11, 0.15)";
+            sumSev.style.borderColor = "#f59e0b";
+          } else if (data.severity.includes("NONE")) {
+            sumSev.style.color = "#34d399";
+            sumSev.style.background = "rgba(16, 185, 129, 0.15)";
+            sumSev.style.borderColor = "#10b981";
+          } else {
+            sumSev.style.color = "#f87171";
+            sumSev.style.background = "rgba(239, 68, 68, 0.15)";
+            sumSev.style.borderColor = "#dc2626";
+          }
+        }
+        if (sumHi) {
+          const hiScore = data.health_index_pct != null ? data.health_index_pct : Math.round(data.health_index * 100);
+          sumHi.textContent = `${hiScore}/100`;
+          sumHi.style.color = hiScore >= 95 ? "#34d399" : (hiScore >= 70 ? "#f59e0b" : "#ef4444");
+        }
+        if (sumUse) {
+          sumUse.textContent = data.board_usability;
+          if (data.board_usability.includes("USABLE / RELEASED")) {
+            sumUse.style.color = "#34d399";
+            sumUse.style.background = "rgba(16, 185, 129, 0.15)";
+            sumUse.style.borderColor = "#10b981";
+          } else if (data.board_usability.includes("REWORK")) {
+            sumUse.style.color = "#f59e0b";
+            sumUse.style.background = "rgba(245, 158, 11, 0.15)";
+            sumUse.style.borderColor = "#f59e0b";
+          } else {
+            sumUse.style.color = "#ef4444";
+            sumUse.style.background = "rgba(239, 68, 68, 0.15)";
+            sumUse.style.borderColor = "#ef4444";
+          }
+        }
+
+        // 3. Panels
+        const imgRgb = document.getElementById("ps-img-rgb");
+        const imgNormals = document.getElementById("ps-img-normals");
+        const imgSlopes = document.getElementById("ps-img-slopes");
+
+        if (imgRgb && data.rgb_base64) imgRgb.src = `data:image/png;base64,${data.rgb_base64}`;
+        if (imgNormals && data.normals_base64) imgNormals.src = `data:image/png;base64,${data.normals_base64}`;
+        if (imgSlopes && data.slope_heatmap_base64) imgSlopes.src = `data:image/png;base64,${data.slope_heatmap_base64}`;
+
+        const tagP1 = document.getElementById("ps-tag-p1");
+        if (tagP1 && data.affected_component) {
+          tagP1.innerHTML = `<i class="fa-solid fa-palette"></i> 1. MULTI-ANGLE RGB INPUT • ${data.board_id} (${data.affected_component})`;
+        }
+
+        const tagP3 = document.getElementById("ps-tag-p3");
+        if (tagP3) {
+          if (!data.is_solder_applicable) {
+            tagP3.innerHTML = `<i class="fa-solid fa-ruler-combined"></i> 3. SURFACE PROFILE HEATMAP (NON-SOLDER / SUBSTRATE DEFECT)`;
+          } else {
+            tagP3.innerHTML = `<i class="fa-solid fa-ruler-combined"></i> 3. IPC-A-610 WETTING ANGLE HEATMAP (θ = arccos Nz)`;
+          }
+        }
+
+        // 4. Telemetry KPIs
+        const evalData = data.solder_evaluation || {};
+        const angleEl = document.getElementById("ps-kpi-angle");
+        const heightEl = document.getElementById("ps-kpi-height");
+        const ipcEl = document.getElementById("ps-kpi-ipc");
+        const statusEl = document.getElementById("ps-kpi-status");
+
+        if (angleEl) {
+          if (data.is_solder_applicable && evalData.mean_wetting_angle_deg != null) {
+            angleEl.textContent = `${evalData.mean_wetting_angle_deg.toFixed(1)}°`;
+            angleEl.style.color = "#38bdf8";
+          } else {
+            angleEl.textContent = "N/A (NON-SOLDER)";
+            angleEl.style.color = "#94a3b8";
+          }
+        }
+
+        if (heightEl) {
+          if (evalData.peak_solder_height_um != null) {
+            heightEl.textContent = `${evalData.peak_solder_height_um.toFixed(1)} µm`;
+            heightEl.style.color = evalData.peak_solder_height_um < 0 ? "#ef4444" : "#34d399";
+          } else {
+            heightEl.textContent = "N/A";
+            heightEl.style.color = "#94a3b8";
+          }
+        }
+
+        const isDefect = (data.verdict === "FAIL" || evalData.is_defect);
+        const isRework = (data.verdict === "REWORK");
+        const badgeColor = isRework ? "#f59e0b" : (isDefect ? "#ef4444" : "#34d399");
+
+        if (ipcEl) {
+          ipcEl.textContent = evalData.ipc_classification || (data.verdict === "PASS" ? "IPC Class 3 Target" : "IPC Class 3 Violation");
+          ipcEl.style.color = badgeColor;
+        }
+
+        if (statusEl) {
+          statusEl.textContent = evalData.solder_status || (data.verdict === "PASS" ? "OPTIMAL CONCAVE MENISCUS" : "DEFECT DETECTED");
+          statusEl.style.color = badgeColor;
+        }
+      } catch (err) {
+        console.error("Board photometric reconstruction failed:", err);
+      }
+    }
+
+    // Backwards compatibility alias
+    async function loadPhotometricSample(sampleId) {
+      await loadBoardPhotometric(sampleId);
+    }
+
+    async function handleBoardSelect(bId) {
+      if (!bId) return;
+      if (bId === "ACTIVE_LIVE") {
+        if (typeof getGlobalActiveBoard === 'function') {
+          const active = await getGlobalActiveBoard();
+          if (active && active.board_id) {
+            loadBoardPhotometric(active.board_id);
+          }
+        }
+        return;
+      }
+
+      // Propagate globally so all suite views remain synchronized
+      if (typeof setGlobalActiveBoard === 'function') {
+        const meta = (window.SCENARIO_CATALOG && window.SCENARIO_CATALOG[bId]) || {};
+        await setGlobalActiveBoard({
+          board_id: bId,
+          scenario_name: meta.name || `${bId} Board`,
+          defect_type: meta.defect_type || (meta.default_verdict === 'PASS' ? 'none' : 'Defect Detected'),
+          verdict: meta.default_verdict || 'FAIL',
+          image_url: `/evaluation/test_boards/${bId}.png`
+        });
+      }
+
+      loadBoardPhotometric(bId);
+    }
+
+    async function uploadCustomPhotometric(file) {
+      if (!file) return;
+      const formData = new FormData();
+      formData.append("file", file, file.name);
+
+      const statusEl = document.getElementById("ps-kpi-status");
+      const ipcEl = document.getElementById("ps-kpi-ipc");
+      if (statusEl) { statusEl.textContent = "SOLVING 3D..."; statusEl.style.color = "#38bdf8"; }
+      if (ipcEl) { ipcEl.textContent = "COMPUTING"; ipcEl.style.color = "#38bdf8"; }
+
+      try {
+        const res = await fetch("/api/photometric/upload", { method: "POST", body: formData });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ detail: "Upload failed" }));
+          throw new Error(err.detail || "Server error");
+        }
+        const data = await res.json();
+
+        document.getElementById("ps-img-rgb").src = `data:image/png;base64,${data.rgb_base64}`;
+        document.getElementById("ps-img-normals").src = `data:image/png;base64,${data.normals_base64}`;
+        document.getElementById("ps-img-slopes").src = `data:image/png;base64,${data.slope_heatmap_base64}`;
+
+        const evalData = data.solder_evaluation;
+        document.getElementById("ps-kpi-angle").textContent = `${evalData.mean_wetting_angle_deg.toFixed(1)}°`;
+        document.getElementById("ps-kpi-height").textContent = `${evalData.peak_solder_height_um.toFixed(1)} µm`;
+        document.getElementById("ps-kpi-ipc").textContent = evalData.ipc_classification;
+        document.getElementById("ps-kpi-status").textContent = evalData.solder_status;
+
+        const isDefect = evalData.is_defect;
+        document.getElementById("ps-kpi-ipc").style.color = isDefect ? "#ef4444" : "#34d399";
+        document.getElementById("ps-kpi-status").style.color = isDefect ? "#ef4444" : "#34d399";
+      } catch (err) {
+        console.error("Custom photometric upload failed:", err);
+        alert("Upload analysis failed: " + err.message);
+        if (statusEl) { statusEl.textContent = "ERROR"; statusEl.style.color = "#ef4444"; }
+      }
+    }
+
+    function syncActivePhotometric(boardInfo) {
+      if (!boardInfo || !boardInfo.board_id || boardInfo.verdict === "READY") return;
+      const bId = String(boardInfo.board_id || boardInfo.serial || 'TB005').trim().toUpperCase();
+
+      const select = document.getElementById("ps-scenario-select");
+      if (select) {
+        if (typeof syncDropdownToActiveBoard === 'function') {
+          syncDropdownToActiveBoard(select, bId);
+        } else {
+          select.value = bId;
+        }
+      }
+
+      loadBoardPhotometric(bId);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+
+      const uploadInput = document.getElementById("ps-upload-input");
+      if (uploadInput) {
+        uploadInput.addEventListener("change", (e) => {
+          if (e.target.files.length) {
+            uploadCustomPhotometric(e.target.files[0]);
+          }
+        });
+      }
+
+      if (typeof getGlobalActiveBoard === 'function') {
+        getGlobalActiveBoard().then(active => {
+          if (active && active.board_id && active.verdict !== "READY") {
+            syncActivePhotometric(active);
+          } else {
+            loadBoardPhotometric("TB005");
+          }
+        });
+      } else {
+        loadBoardPhotometric("TB005");
+      }
+
+      if (typeof onGlobalActiveBoardChange === 'function') {
+        onGlobalActiveBoardChange((active) => {
+          if (active && active.board_id && active.verdict !== "READY") {
+            syncActivePhotometric(active);
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>
